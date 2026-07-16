@@ -14,4 +14,8 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     }).then((r) => r.json()),
+  delete: (path: string) => fetch(`${BASE}${path}`, { method: "DELETE" }).then((r) => {
+    if (!r.ok) throw new Error(`API error ${r.status}`);
+    return r.json();
+  }),
 };
