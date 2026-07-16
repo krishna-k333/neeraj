@@ -4,5 +4,6 @@ backend/*.db
 frontend/.env.local
 frontend/.next/
 frontend/node_modules/
+frontend/.git.local-backup/
 **/__pycache__/
 *.pyc
