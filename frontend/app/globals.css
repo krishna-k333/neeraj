@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --accent: #0d9488;        /* teal-600 */
+  --accent-soft: #ccfbf1;   /* teal-100 */
+  --accent-deep: #115e59;   /* teal-800 */
+  --ink: #0f172a;
+  --card-border: #eef1f6;
+}
+
+body {
+  background: #f5f7fa;
+  font-family: var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #1e293b;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d3dae3; border-radius: 99px; }
+
+@layer components {
+  .card {
+    @apply bg-white rounded-[20px] border border-[#eef1f6];
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 8px 24px -12px rgba(16, 24, 40, 0.08);
+  }
+  .card-hover {
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(16, 24, 40, 0.05), 0 16px 32px -12px rgba(16, 24, 40, 0.14);
+  }
+  .btn-accent {
+    @apply bg-teal-600 text-white hover:bg-teal-700 transition rounded-xl text-sm font-semibold;
+    box-shadow: 0 4px 12px -4px rgba(13, 148, 136, 0.45);
+  }
+  .chip {
+    @apply text-[11px] font-semibold px-2 py-0.5 rounded-full;
+  }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+}
