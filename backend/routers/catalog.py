@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from database import get_db
@@ -7,6 +8,10 @@ from services.cloudinary_client import upload_image, upload_video, delete_media
 import uuid
 
 router = APIRouter()
+
+
+class ProductPriceUpdate(BaseModel):
+    price: float = Field(ge=0)
 
 
 @router.get("/")
@@ -71,6 +76,23 @@ async def delete_product(product_id: int, db: AsyncSession = Depends(get_db)):
     await db.delete(product)
     await db.commit()
     return {"deleted": product_id}
+
+
+@router.patch("/{product_id}/price")
+async def update_product_price(
+    product_id: int,
+    update: ProductPriceUpdate,
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Product).where(Product.id == product_id))
+    product = result.scalar_one_or_none()
+    if not product:
+        raise HTTPException(404, "Product not found")
+
+    product.price = update.price
+    await db.commit()
+    await db.refresh(product)
+    return product.__dict__
 
 
 @router.get("/search")

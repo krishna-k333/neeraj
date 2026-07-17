@@ -21,6 +21,12 @@ const STATUS_META: Record<string, { color: string; label: string; Icon: LucideIc
   failed:     { color: "#ef4444", label: "Failed",     Icon: Clock },
 };
 
+const VIDEO_STYLES = [
+  { id: "showcase", title: "Product-only showcase", duration: "5–7 sec", description: "Cinematic macro-pan across the fabric. No model." },
+  { id: "model_walk", title: "Virtual model fashion walk", duration: "7 sec", description: "An Indian model wears the saree in a premium boutique." },
+  { id: "dynamic_cut", title: "Combined dynamic cut", duration: "10 sec", description: "Product close-up transitions into a model showroom shot." },
+] as const;
+
 // Mock quota — replace with fetch to /api/video/quota
 const QUOTA = {
   used: 8,
@@ -82,20 +88,20 @@ export function VideoPage() {
 
   const [productId, setProductId] = useState<number | null>(null);
   const [productReference, setProductReference] = useState("");
-  const [offerHook, setOfferHook] = useState("");
-  const [locationContact, setLocationContact] = useState("");
+  const [videoStyle, setVideoStyle] = useState<(typeof VIDEO_STYLES)[number]["id"] | null>(null);
+  const [voiceoverScript, setVoiceoverScript] = useState("");
   const [languageVibe, setLanguageVibe] = useState("High-energy Hinglish");
   const [submitting, setSubmitting] = useState(false);
 
   async function handleGenerate() {
-    if (!productId) return;
+    if (!productId || !videoStyle || !voiceoverScript.trim()) return;
     setSubmitting(true);
     try {
       await api.post("/api/video/generate", {
         product_id: productId,
         product_reference: productReference,
-        offer_hook: offerHook,
-        location_contact: locationContact,
+        video_style: videoStyle,
+        audio_script: voiceoverScript.trim(),
         language_vibe: languageVibe,
       });
     } finally {
@@ -154,25 +160,10 @@ export function VideoPage() {
             </div>
 
             <div>
-              <label className="text-xs font-bold text-slate-500 mb-2 block">Offer / Hook</label>
-              <input
-                type="text"
-                value={offerHook}
-                onChange={(e) => setOfferHook(e.target.value)}
-                placeholder="e.g. Free suit on every purchase this week"
-                className="w-full border border-[#eef1f6] bg-slate-50/50 rounded-2xl px-4 py-3 text-[13px] outline-none focus:border-violet-300 focus:bg-white transition"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-bold text-slate-500 mb-2 block">Location / Contact</label>
-              <input
-                type="text"
-                value={locationContact}
-                onChange={(e) => setLocationContact(e.target.value)}
-                placeholder="e.g. Ballabhgarh, 9312971238"
-                className="w-full border border-[#eef1f6] bg-slate-50/50 rounded-2xl px-4 py-3 text-[13px] outline-none focus:border-violet-300 focus:bg-white transition"
-              />
+              <label className="text-xs font-bold text-slate-500 mb-2.5 block">Choose Video Style</label>
+              <div className="space-y-2">
+                {VIDEO_STYLES.map(style => <button type="button" key={style.id} onClick={() => setVideoStyle(style.id)} className={`w-full rounded-2xl border p-3 text-left transition ${videoStyle === style.id ? "border-violet-400 bg-violet-50" : "border-[#eef1f6] hover:border-violet-300"}`}><div className="flex items-center justify-between gap-3"><span className="text-[13px] font-bold text-slate-700">{style.title}</span><span className="text-[11px] font-semibold text-violet-600">{style.duration}</span></div><p className="mt-1 text-[11px] text-slate-500">{style.description}</p></button>)}
+              </div>
             </div>
 
             <div>
@@ -186,8 +177,14 @@ export function VideoPage() {
               />
             </div>
 
+            {videoStyle && <div>
+              <label className="text-xs font-bold text-slate-500 mb-2 block">Your Voiceover Script <span className="text-rose-500">(required)</span></label>
+              <p className="mb-2 text-[11px] text-slate-400">Write the exact words a human should say. We will use your script as-is and won’t generate one.</p>
+              <textarea value={voiceoverScript} onChange={(e) => setVoiceoverScript(e.target.value)} rows={4} placeholder="Type your voiceover script here..." className="w-full resize-y border border-[#eef1f6] bg-slate-50/50 rounded-2xl px-4 py-3 text-[13px] outline-none focus:border-violet-300 focus:bg-white transition" />
+            </div>}
+
             <button
-              disabled={!canGenerate || !productId || submitting}
+              disabled={!canGenerate || !productId || !videoStyle || !voiceoverScript.trim() || submitting}
               onClick={handleGenerate}
               className="w-full py-3.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-violet-500 to-purple-600 hover:opacity-90 transition flex items-center justify-center gap-2 shadow-lg shadow-violet-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
             >

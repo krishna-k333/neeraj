@@ -5,7 +5,7 @@ from database import get_db
 from models import Message, SocialPost, VideoJob, Product
 from services.warming import get_warming_status
 from services.evolution import get_instance_status
-from datetime import date
+from datetime import date, timedelta
 
 router = APIRouter()
 
@@ -56,6 +56,20 @@ async def dashboard_stats(db: AsyncSession = Depends(get_db)):
     )
     recent_messages = [m.__dict__ for m in recent.scalars().all()]
 
+    # Keep the dashboard chart tied to actual message activity, including days
+    # with no messages so the last-seven-days timeline remains stable.
+    chart_start = date.today() - timedelta(days=6)
+    chart_rows = await db.execute(
+        select(func.date(Message.created_at), func.count(Message.id))
+        .where(func.date(Message.created_at) >= str(chart_start))
+        .group_by(func.date(Message.created_at))
+    )
+    chart_counts = {str(day): count for day, count in chart_rows.all()}
+    seven_day_messages = [
+        chart_counts.get(str(chart_start + timedelta(days=offset)), 0)
+        for offset in range(7)
+    ]
+
     warming = get_warming_status()
 
     try:
@@ -74,4 +88,5 @@ async def dashboard_stats(db: AsyncSession = Depends(get_db)):
         "warming": warming,
         "whatsapp_status": wa_status,
         "recent_activity": recent_messages,
+        "seven_day_messages": seven_day_messages,
     }

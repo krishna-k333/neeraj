@@ -35,38 +35,29 @@ Return ONLY the final prompt paragraph. No preamble, no markdown, no quotes arou
 
 async def generate_video_prompt(
     product_reference: str,
-    offer_hook: str,
-    location_contact: str,
+    video_style: str,
+    audio_script: str,
     language_vibe: str,
 ) -> str:
-    """Turn structured retailer inputs into a cinematic image-to-video prompt via the master prompt above."""
-    user_message = (
-        f"Product Reference: {product_reference}\n"
-        f"Offer/Hook: {offer_hook}\n"
-        f"Location/Contact: {location_contact}\n"
-        f"Language/Vibe: {language_vibe}"
-    )
-
-    async with httpx.AsyncClient(timeout=30) as client:
-        r = await client.post(
-            f"{AI_BASE}/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {settings.AI_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": settings.AI_MODEL,
-                "messages": [
-                    {"role": "system", "content": VIDEO_PROMPT_SYSTEM},
-                    {"role": "user", "content": user_message},
-                ],
-                "max_tokens": 400,
-                "temperature": 0.8,
-            }
-        )
-        r.raise_for_status()
-        data = r.json()
-        return data["choices"][0]["message"]["content"].strip()
+    """Build a fixed visual direction and preserve the retailer's script verbatim."""
+    visual_prompts = {
+        "showcase": (
+            f"Using the provided reference image of {product_reference}, generate a photorealistic, 5-to-7 second cinematic video. "
+            "The camera executes a slow, smooth macro-pan across the folded fabric, starting at the border and gliding toward the center. "
+            "Keep the background softly blurred with shallow f/2.8 depth of field. Lighting is warm, natural, and earthy, catching the subtle metallic sheen of the weaving. No humans in frame."
+        ),
+        "model_walk": (
+            f"Generate a photorealistic, 7-second fashion video of a beautiful, confident Indian female model wearing the exact {product_reference} shown in the provided reference image. "
+            "The model walks slowly toward the camera in a modern, brightly lit indoor boutique. Use a medium-full tracking shot, with fabric draping elegantly and catching light dynamically. 4K fashion editorial style."
+        ),
+        "dynamic_cut": (
+            f"Generate a dynamic, 10-second high-energy fashion video using the provided reference image of {product_reference}. "
+            "Scene 1 (0-3s): cinematic close-up of the folded product with a quick zoom into its border and woven detail. "
+            "Scene 2 (3-10s): seamless transition to an Indian fashion model wearing the exact same product, twirling playfully in a brightly lit premium retail showroom. Fast-paced, fluid camera movement, ultra-realistic."
+        ),
+    }
+    visual = visual_prompts[video_style]
+    return f'{visual} Audio/Dialogue: Generate a {language_vibe} native voiceover that says exactly: "{audio_script.strip()}"'
 
 
 async def chat(user_message: str, history: list[dict] = None) -> str:

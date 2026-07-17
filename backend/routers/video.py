@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from pydantic import BaseModel
+from typing import Literal
+from pydantic import BaseModel, Field
 from database import get_db
 from models import VideoJob, Product
 from services import video_ai, llm
@@ -14,8 +15,8 @@ router = APIRouter()
 
 class VideoRequest(BaseModel):
     product_id: int
-    offer_hook: str = ""
-    location_contact: str = ""
+    video_style: Literal["showcase", "model_walk", "dynamic_cut"]
+    audio_script: str = Field(min_length=1, max_length=1000)
     language_vibe: str = "High-energy Hinglish"
     product_reference: str = ""  # optional override of catalog product name/color/category
 
@@ -108,8 +109,8 @@ async def generate_video(
     product_reference = req.product_reference or f"{product.color} {product.category} — {product.name}"
     prompt = await llm.generate_video_prompt(
         product_reference=product_reference,
-        offer_hook=req.offer_hook or "Special offer, limited time",
-        location_contact=req.location_contact or "",
+        video_style=req.video_style,
+        audio_script=req.audio_script,
         language_vibe=req.language_vibe or "High-energy Hinglish",
     )
 

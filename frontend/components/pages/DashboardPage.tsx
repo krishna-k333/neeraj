@@ -1,40 +1,42 @@
 "use client";
+import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import { MessageCircle, Radio, Package, Video, Share2, Heart, ArrowRight } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { WarmingBadge } from "@/components/WarmingBadge";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { MiniChart } from "@/components/MiniChart";
+import { api } from "@/lib/api";
 import { format } from "date-fns";
 
-// Mock data — replace with useQuery(() => api.get("/api/dashboard/stats")) when backend is live
-const MOCK_STATS = {
-  messages_sent: 87,
-  messages_received: 134,
-  thankyou_sent: 12,
-  posts_scheduled_today: 3,
-  videos_created_today: 1,
-  total_products_in_catalog: 48,
-  warming: {
-    days_active: 1,
-    daily_limit: 0,
-    outbound_allowed: false,
-    phase: "listen-only",
-  },
-  whatsapp_status: { state: "open" },
+type DashboardStats = {
+  messages_sent: number;
+  messages_received: number;
+  thankyou_sent: number;
+  posts_scheduled_today: number;
+  videos_created_today: number;
+  total_products_in_catalog: number;
+  warming: { days_active: number; daily_limit: number; outbound_allowed: boolean; phase: string };
+  whatsapp_status: { state?: string };
+  recent_activity: Array<{ id: number; direction: string; phone: string; content: string; msg_type: string; created_at: string }>;
+  seven_day_messages: number[];
 };
 
-const MOCK_ACTIVITY = [
-  { id: 1, direction: "inbound", phone: "9198XXXX1234", content: "क्या आपके पास लाल रंग की साड़ी है?", msg_type: "text", created_at: new Date().toISOString() },
-  { id: 2, direction: "outbound", phone: "9198XXXX1234", content: "जी हाँ! हमारे पास बहुत सुंदर लाल साड़ियाँ हैं। कौन सी रेंज चाहिए?", msg_type: "reply", created_at: new Date().toISOString() },
-  { id: 3, direction: "outbound", phone: "9199XXXX5678", content: "🙏 Neeraj Enterprises से खरीदारी के लिए धन्यवाद!", msg_type: "thankyou", created_at: new Date().toISOString() },
-  { id: 4, direction: "inbound", phone: "9197XXXX9012", content: "Suit ka price kya hai?", msg_type: "text", created_at: new Date().toISOString() },
-];
-
-const MSG_CHART = [40, 55, 80, 62, 90, 87, 134];
-
 export function DashboardPage() {
-  const s = MOCK_STATS;
+  const { data: s, isLoading, isError } = useQuery<DashboardStats>({
+    queryKey: ["dashboard-stats"],
+    queryFn: () => api.get("/api/dashboard/stats"),
+    refetchInterval: 30_000,
+  });
   const today = format(new Date(), "EEEE, MMM d, yyyy");
+
+  if (isLoading) {
+    return <div className="max-w-[1200px] mx-auto text-sm text-slate-400 py-10 text-center">Loading today&apos;s dashboard…</div>;
+  }
+
+  if (isError || !s) {
+    return <div className="max-w-[1200px] mx-auto rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-600">Couldn&apos;t load live dashboard data. Check that the dashboard API is running.</div>;
+  }
 
   return (
     <div className="space-y-5 lg:space-y-6 max-w-[1200px] mx-auto">
@@ -56,15 +58,15 @@ export function DashboardPage() {
         </div>
 
         {/* Gradient hero card — like the reference banner */}
-        <div className="relative rounded-[20px] bg-gradient-to-br from-teal-500 via-teal-600 to-emerald-700 p-5 text-white overflow-hidden card-hover cursor-pointer">
+        <Link href="/video" className="relative rounded-[20px] bg-gradient-to-br from-teal-500 via-teal-600 to-emerald-700 p-5 text-white overflow-hidden card-hover">
           <div className="absolute -right-8 -top-10 w-36 h-36 rounded-full bg-white/10" />
           <div className="absolute right-10 -bottom-14 w-32 h-32 rounded-full bg-white/10" />
           <p className="text-[13px] font-semibold text-teal-50 relative">Grow your reach with</p>
           <p className="text-[22px] font-extrabold leading-tight relative mt-0.5">AI Product Videos ✨</p>
-          <button className="relative mt-3.5 inline-flex items-center gap-1.5 bg-white text-teal-700 text-xs font-bold px-3.5 py-2 rounded-full hover:bg-teal-50 transition">
+          <span className="relative mt-3.5 inline-flex items-center gap-1.5 bg-white text-teal-700 text-xs font-bold px-3.5 py-2 rounded-full hover:bg-teal-50 transition">
             Generate now <ArrowRight size={13} />
-          </button>
-        </div>
+          </span>
+        </Link>
       </div>
 
       {/* Stats grid */}
@@ -80,13 +82,13 @@ export function DashboardPage() {
       {/* Main content row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2">
-          <ActivityFeed messages={MOCK_ACTIVITY} />
+          <ActivityFeed messages={s.recent_activity} />
         </div>
         <div className="space-y-5">
           <WarmingBadge status={s.warming} />
           <MiniChart
             title="Messages · 7 days"
-            data={MSG_CHART}
+            data={s.seven_day_messages}
             color="#0d9488"
             total={s.messages_received + s.messages_sent}
             label="total conversations"
