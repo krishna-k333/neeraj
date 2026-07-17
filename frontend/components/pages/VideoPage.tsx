@@ -1,13 +1,14 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Video, Sparkles, Clock, CheckCircle, Loader, Zap, Calendar, type LucideIcon } from "lucide-react";
 import { api } from "@/lib/api";
 
-const PRODUCTS = [
-  { id: 1, name: "Banarasi Silk Saree", thumb: "https://placehold.co/80x80/f43f5e/fff?text=S" },
-  { id: 2, name: "Kanjivaram Saree", thumb: "https://placehold.co/80x80/10b981/fff?text=K" },
-  { id: 3, name: "Anarkali Suit", thumb: "https://placehold.co/80x80/3b82f6/fff?text=A" },
-];
+type CatalogProduct = {
+  id: number;
+  name: string;
+  cloudinary_url: string;
+  media_type: "image" | "video";
+};
 
 const JOBS = [
   { id: 1, name: "Banarasi Silk Saree", status: "done", cloudinary_url: "https://placehold.co/320x180/0d9488/fff?text=Video+Ready", created_at: "10 mins ago" },
@@ -87,11 +88,21 @@ export function VideoPage() {
   const canGenerate = remaining > 0;
 
   const [productId, setProductId] = useState<number | null>(null);
+  const [products, setProducts] = useState<CatalogProduct[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [productsError, setProductsError] = useState<string | null>(null);
   const [productReference, setProductReference] = useState("");
   const [videoStyle, setVideoStyle] = useState<(typeof VIDEO_STYLES)[number]["id"] | null>(null);
   const [voiceoverScript, setVoiceoverScript] = useState("");
   const [languageVibe, setLanguageVibe] = useState("High-energy Hinglish");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    api.get("/api/catalog/")
+      .then((items: CatalogProduct[]) => setProducts(items.filter(item => item.media_type === "image")))
+      .catch(() => setProductsError("Couldn’t load catalog items."))
+      .finally(() => setProductsLoading(false));
+  }, []);
 
   async function handleGenerate() {
     if (!productId || !videoStyle || !voiceoverScript.trim()) return;
@@ -132,7 +143,10 @@ export function VideoPage() {
             <div>
               <label className="text-xs font-bold text-slate-500 mb-2.5 block">Select Product from Catalog</label>
               <div className="space-y-2">
-                {PRODUCTS.map(p => (
+                {productsLoading && <p className="px-1 text-xs text-slate-400">Loading catalog items...</p>}
+                {productsError && <p className="px-1 text-xs text-rose-500">{productsError}</p>}
+                {!productsLoading && !productsError && products.length === 0 && <p className="px-1 text-xs text-slate-400">Add an image product to the catalog first. That image will be used as the video reference.</p>}
+                {products.map(p => (
                   <label key={p.id} className="flex items-center gap-3 p-3 rounded-2xl border border-[#eef1f6] cursor-pointer hover:border-violet-300 hover:bg-violet-50/40 transition has-[:checked]:border-violet-400 has-[:checked]:bg-violet-50/60">
                     <input
                       type="radio"
@@ -141,7 +155,7 @@ export function VideoPage() {
                       checked={productId === p.id}
                       onChange={() => setProductId(p.id)}
                     />
-                    <img src={p.thumb} alt={p.name} className="w-9 h-9 rounded-xl object-cover" />
+                    <img src={p.cloudinary_url} alt={p.name} className="w-9 h-9 rounded-xl object-cover" />
                     <span className="text-[13px] font-semibold text-slate-600">{p.name}</span>
                   </label>
                 ))}
