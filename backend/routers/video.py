@@ -20,6 +20,7 @@ class VideoRequest(BaseModel):
     audio_script: str = Field(min_length=1, max_length=1000)
     language_vibe: str = "High-energy Hinglish"
     product_reference: str = ""  # optional override of catalog product name/color/category
+    custom_prompt: str = Field(default="", max_length=3000)
 
 
 async def _used_this_cycle(db: AsyncSession) -> int:
@@ -113,6 +114,7 @@ async def generate_video(
         video_style=req.video_style,
         audio_script=req.audio_script,
         language_vibe=req.language_vibe or "High-energy Hinglish",
+        custom_prompt=req.custom_prompt,
     )
 
     job = VideoJob(product_id=req.product_id, prompt=prompt, status="pending")

@@ -26,9 +26,9 @@ const STATUS_META: Record<string, { color: string; label: string; Icon: LucideIc
 };
 
 const VIDEO_STYLES = [
-  { id: "showcase", title: "Product-only showcase", duration: "5–7 sec", description: "Cinematic macro-pan across the fabric. No model." },
-  { id: "model_walk", title: "Virtual model fashion walk", duration: "7 sec", description: "An Indian model wears the saree in a premium boutique." },
-  { id: "dynamic_cut", title: "Combined dynamic cut", duration: "10 sec", description: "Product close-up transitions into a model showroom shot." },
+  { id: "showcase", title: "Product-only showcase", duration: "10 sec", description: "Four premium product scenes with different displays, angles, and no model." },
+  { id: "model_walk", title: "Virtual model fashion walk", duration: "10 sec", description: "Four editorial angles, including a hem-to-hero reveal, in premium boutique settings." },
+  { id: "dynamic_cut", title: "Combined dynamic cut", duration: "12 sec", description: "Five fast, polished scenes: product details, displays, and a model reveal." },
 ] as const;
 
 // Mock quota — replace with fetch to /api/video/quota
@@ -96,6 +96,7 @@ export function VideoPage() {
   const [productsError, setProductsError] = useState<string | null>(null);
   const [productReference, setProductReference] = useState("");
   const [videoStyle, setVideoStyle] = useState<(typeof VIDEO_STYLES)[number]["id"] | null>(null);
+  const [customPrompt, setCustomPrompt] = useState("");
   const [voiceoverScript, setVoiceoverScript] = useState("");
   const [languageVibe, setLanguageVibe] = useState("High-energy Hinglish");
   const [submitting, setSubmitting] = useState(false);
@@ -132,6 +133,7 @@ export function VideoPage() {
         product_id: productId,
         product_reference: productReference,
         video_style: videoStyle,
+        custom_prompt: customPrompt.trim(),
         audio_script: voiceoverScript.trim(),
         language_vibe: languageVibe,
       });
@@ -199,6 +201,19 @@ export function VideoPage() {
               <div className="space-y-2">
                 {VIDEO_STYLES.map(style => <button type="button" key={style.id} onClick={() => setVideoStyle(style.id)} className={`w-full rounded-2xl border p-3 text-left transition ${videoStyle === style.id ? "border-violet-400 bg-violet-50" : "border-[#eef1f6] hover:border-violet-300"}`}><div className="flex items-center justify-between gap-3"><span className="text-[13px] font-bold text-slate-700">{style.title}</span><span className="text-[11px] font-semibold text-violet-600">{style.duration}</span></div><p className="mt-1 text-[11px] text-slate-500">{style.description}</p></button>)}
               </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-slate-500 mb-2 block">Custom Visual Direction <span className="font-medium text-slate-400">(optional)</span></label>
+              <p className="mb-2 text-[11px] text-slate-400">Add your own scene, location, camera, mood, or presentation instruction. It will be combined with the selected style while keeping the exact catalog item unchanged.</p>
+              <textarea
+                value={customPrompt}
+                onChange={(e) => setCustomPrompt(e.target.value)}
+                rows={4}
+                maxLength={3000}
+                placeholder="e.g. Include a sunrise window-display scene with a slow 35mm dolly-in, then end on a rich emerald backdrop."
+                className="w-full resize-y border border-[#eef1f6] bg-slate-50/50 rounded-2xl px-4 py-3 text-[13px] outline-none focus:border-violet-300 focus:bg-white transition"
+              />
             </div>
 
             <div>
