@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Video, Sparkles, Clock, CheckCircle, Loader, Zap, Calendar, type LucideIcon } from "lucide-react";
-import { api } from "@/lib/api";
+import { Video, Sparkles, Clock, CheckCircle, Download, Loader, Play, X, Zap, Calendar, type LucideIcon } from "lucide-react";
+import { api, API_BASE } from "@/lib/api";
 
 type CatalogProduct = {
   id: number;
@@ -10,10 +10,13 @@ type CatalogProduct = {
   media_type: "image" | "video";
 };
 
-const JOBS = [
-  { id: 1, name: "Banarasi Silk Saree", status: "done", cloudinary_url: "https://placehold.co/320x180/0d9488/fff?text=Video+Ready", created_at: "10 mins ago" },
-  { id: 2, name: "Anarkali Suit", status: "processing", cloudinary_url: null, created_at: "25 mins ago" },
-];
+type VideoJob = {
+  id: number;
+  product_id: number;
+  status: "pending" | "processing" | "done" | "failed";
+  output_url: string | null;
+  created_at: string;
+};
 
 const STATUS_META: Record<string, { color: string; label: string; Icon: LucideIcon }> = {
   done:       { color: "#0d9488", label: "Ready",      Icon: CheckCircle },
@@ -96,12 +99,29 @@ export function VideoPage() {
   const [voiceoverScript, setVoiceoverScript] = useState("");
   const [languageVibe, setLanguageVibe] = useState("High-energy Hinglish");
   const [submitting, setSubmitting] = useState(false);
+  const [jobs, setJobs] = useState<VideoJob[]>([]);
+  const [jobsLoading, setJobsLoading] = useState(true);
+  const [playingJob, setPlayingJob] = useState<VideoJob | null>(null);
+
+  const loadJobs = async () => {
+    try {
+      setJobs(await api.get("/api/video/jobs"));
+    } finally {
+      setJobsLoading(false);
+    }
+  };
 
   useEffect(() => {
     api.get("/api/catalog/")
       .then((items: CatalogProduct[]) => setProducts(items.filter(item => item.media_type === "image")))
       .catch(() => setProductsError("Couldn’t load catalog items."))
       .finally(() => setProductsLoading(false));
+  }, []);
+
+  useEffect(() => {
+    loadJobs().catch(console.error);
+    const poll = window.setInterval(() => loadJobs().catch(console.error), 10000);
+    return () => window.clearInterval(poll);
   }, []);
 
   async function handleGenerate() {
@@ -115,6 +135,7 @@ export function VideoPage() {
         audio_script: voiceoverScript.trim(),
         language_vibe: languageVibe,
       });
+      await loadJobs();
     } finally {
       setSubmitting(false);
     }
@@ -216,33 +237,38 @@ export function VideoPage() {
         {/* Jobs */}
         <div className="lg:col-span-2 space-y-3">
           <h3 className="text-[15px] font-bold text-slate-800 px-1">Video Jobs</h3>
-          {JOBS.map(job => {
+          {jobsLoading && <div className="card p-5 text-sm text-slate-400">Loading video jobs...</div>}
+          {!jobsLoading && jobs.length === 0 && <div className="card p-5 text-sm text-slate-400">Your generated videos will appear here.</div>}
+          {jobs.map(job => {
             const meta = STATUS_META[job.status];
+            const product = products.find(item => item.id === job.product_id);
+            const name = product?.name || `Catalog product #${job.product_id}`;
             return (
               <div key={job.id} className="card card-hover p-4 lg:p-5 flex items-center gap-3 lg:gap-5">
-                {job.cloudinary_url ? (
-                  <img src={job.cloudinary_url} alt={job.name} className="w-20 h-12 lg:w-28 lg:h-16 rounded-2xl object-cover flex-shrink-0 shadow-sm" />
+                {job.status === "done" && job.output_url ? (
+                  <button aria-label={`Play ${name}`} onClick={() => setPlayingJob(job)} className="relative w-20 h-12 lg:w-28 lg:h-16 rounded-2xl overflow-hidden bg-violet-100 flex items-center justify-center flex-shrink-0 shadow-sm"><Play size={20} className="text-violet-700 fill-violet-700" /></button>
                 ) : (
                   <div className="w-20 h-12 lg:w-28 lg:h-16 rounded-2xl bg-slate-50 border border-[#eef1f6] flex items-center justify-center flex-shrink-0">
                     <Loader size={18} className="text-slate-300 animate-spin" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] lg:text-[14px] font-bold text-slate-700 truncate">{job.name}</p>
-                  <p className="text-xs text-slate-400 mt-1 font-medium">{job.created_at}</p>
+                  <p className="text-[13px] lg:text-[14px] font-bold text-slate-700 truncate">{name}</p>
+                  <p className="text-xs text-slate-400 mt-1 font-medium">{new Date(job.created_at).toLocaleString()}</p>
                 </div>
                 <div className="flex items-center gap-1.5 chip flex-shrink-0" style={{ backgroundColor: `${meta.color}12`, color: meta.color }}>
                   <meta.Icon size={11} className={job.status === "processing" ? "animate-spin" : ""} />
                   <span className="hidden sm:inline">{meta.label}</span>
                 </div>
-                {job.status === "done" && (
-                  <button className="btn-accent px-3 lg:px-4 py-2 text-xs hidden sm:block">Share</button>
+                {job.status === "done" && job.output_url && (
+                  <div className="flex gap-2"><button onClick={() => setPlayingJob(job)} className="btn-accent px-3 lg:px-4 py-2 text-xs">Play</button><a href={`${API_BASE}/api/video/jobs/${job.id}/download`} className="rounded-lg border border-violet-200 px-3 py-2 text-violet-700 hover:bg-violet-50" aria-label={`Download ${name}`}><Download size={15} /></a></div>
                 )}
               </div>
             );
           })}
         </div>
       </div>
+      {playingJob?.output_url && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4" role="dialog" aria-modal="true" aria-label="Video player"><div className="w-full max-w-sm rounded-2xl bg-white p-3 shadow-2xl"><div className="mb-2 flex justify-end"><button onClick={() => setPlayingJob(null)} aria-label="Close video player" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X size={18} /></button></div><video src={playingJob.output_url} controls autoPlay playsInline className="w-full rounded-xl bg-black" /><a href={`${API_BASE}/api/video/jobs/${playingJob.id}/download`} className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-3 text-sm font-bold text-white hover:bg-violet-700"><Download size={16} />Download video</a></div></div>}
     </div>
   );
 }

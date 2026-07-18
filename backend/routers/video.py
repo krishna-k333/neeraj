@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from typing import Literal
@@ -145,3 +146,23 @@ async def get_video_job(job_id: int, db: AsyncSession = Depends(get_db)):
     if not job:
         raise HTTPException(404)
     return job.__dict__
+
+
+@router.get("/jobs/{job_id}/download")
+async def download_video(job_id: int, db: AsyncSession = Depends(get_db)):
+    """Download the completed Kie.ai video as an attachment."""
+    result = await db.execute(select(VideoJob).where(VideoJob.id == job_id))
+    job = result.scalar_one_or_none()
+    if not job or job.status != "done" or not job.output_url:
+        raise HTTPException(404, "Completed video not found")
+
+    async with httpx.AsyncClient(timeout=120) as client:
+        response = await client.get(job.output_url)
+        response.raise_for_status()
+        content = response.content
+
+    return StreamingResponse(
+        iter([content]),
+        media_type="video/mp4",
+        headers={"Content-Disposition": f'attachment; filename="video-{job.id}.mp4"'},
+    )
