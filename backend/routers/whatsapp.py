@@ -17,6 +17,45 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
+def _extract_upsert_messages(payload: dict) -> list[dict]:
+    """Normalize Evolution message payloads across supported versions."""
+    data = payload.get("data")
+    if not isinstance(data, dict):
+        return []
+
+    nested = data.get("messages")
+    if isinstance(nested, list):
+        return [message for message in nested if isinstance(message, dict)]
+    if isinstance(nested, dict):
+        return [nested]
+
+    # Evolution v2 sends a single message directly inside `data`.
+    if isinstance(data.get("key"), dict) and isinstance(data.get("message"), dict):
+        return [data]
+
+    return []
+
+
+def _message_phone(message: dict) -> str:
+    """Return the best phone-like identifier from an Evolution message key."""
+    key = message.get("key", {})
+    if not isinstance(key, dict):
+        return ""
+
+    remote_jid = key.get("remoteJid", "")
+    remote_jid_alt = key.get("remoteJidAlt", "")
+
+    # Recent Baileys payloads may use an opaque @lid remoteJid and provide the
+    # real WhatsApp phone number in remoteJidAlt.
+    jid = remote_jid
+    if isinstance(remote_jid_alt, str) and remote_jid_alt.endswith("@s.whatsapp.net"):
+        jid = remote_jid_alt
+
+    if not isinstance(jid, str) or "@" not in jid:
+        return ""
+    return jid.split("@", 1)[0]
+
+
 async def _handle_image(phone: str, message_id: str, caption: str):
     """
     Background: fetch the photo from Evolution, have Gemini describe it, then
@@ -65,8 +104,7 @@ async def evolution_webhook(request: Request, db: AsyncSession = Depends(get_db)
         logger.info(f"webhook: ignoring event={event!r}")
         return {"ok": True}
 
-    data = payload.get("data", {})
-    messages = data.get("messages", []) or []
+    messages = _extract_upsert_messages(payload)
 
     logger.info(f"webhook: messages.upsert with {len(messages)} msg(s)")
 
@@ -74,7 +112,7 @@ async def evolution_webhook(request: Request, db: AsyncSession = Depends(get_db)
         if msg.get("key", {}).get("fromMe"):
             continue  # skip outbound
 
-        phone = msg.get("key", {}).get("remoteJid", "").replace("@s.whatsapp.net", "")
+        phone = _message_phone(msg)
         if not phone:
             logger.warning(f"webhook: msg without remoteJid, skipping: {msg.get('key')}")
             continue
