@@ -6,7 +6,7 @@ Decides: static reply (no LLM) vs LLM reply.
 Design goals:
   - Keep the first customer reply and menu navigation deterministic.
   - Use AI for every later non-menu message.
-  - Scoped to ONE phone for safe roll-out; every other customer is receive-only.
+  - Enabled for every WhatsApp number connected to this instance.
 
 Rules (evaluated in order):
   1. First customer message                        -> static welcome
@@ -23,8 +23,8 @@ from database import SessionLocal
 from models import Message
 from services import menu
 
-# === Test-scope: ONLY this phone receives automated replies for now ===
-# Other phones are recorded by the webhook but the response pipeline stops.
+# Kept as a named fixture for tests and operational reference. Automation is
+# now enabled for every inbound WhatsApp number.
 TEST_PHONE = "918287367640"
 
 
@@ -92,12 +92,6 @@ async def decide(
     `is_first_message` is computed after the inbound row is persisted.
     """
     text = _norm(combined_text)
-
-    # ------------------------------------------------------------------
-    # ONLY the test phone uses this engine. Everyone else is receive-only.
-    # ------------------------------------------------------------------
-    if phone != TEST_PHONE:
-        return RouteDecision(use_llm=False, reply=None, reason="phone-not-test-scope")
 
     # ------------------------------------------------------------------
     # 0. Empty / whitespace -> ignore silently (chat_buffer filters upstream,

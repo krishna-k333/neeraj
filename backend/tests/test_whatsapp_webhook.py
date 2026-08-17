@@ -46,12 +46,12 @@ class EvolutionWebhookPayloadTests(unittest.TestCase):
         self.assertEqual(_evolution_number("918287367640"), "918287367640")
         self.assertEqual(_evolution_number("8287367640"), "918287367640")
 
-    def test_other_numbers_are_receive_only(self):
+    def test_all_numbers_use_the_reply_engine(self):
         decision = asyncio.run(decide("919999999999", "hello"))
         self.assertEqual(TEST_PHONE, "918287367640")
-        self.assertFalse(decision.use_llm)
+        self.assertTrue(decision.use_llm)
         self.assertIsNone(decision.reply)
-        self.assertEqual(decision.reason, "phone-not-test-scope")
+        self.assertEqual(decision.reason, "fallback-llm")
 
     def test_first_message_uses_welcome_without_ai(self):
         decision = asyncio.run(
