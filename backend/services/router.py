@@ -29,8 +29,8 @@ from database import SessionLocal
 from models import Message
 from services import menu
 
-# === Test-scope: ONLY this phone uses the rule engine for now ===
-# Other phones still go straight to Sarvam.
+# === Test-scope: ONLY this phone receives automated replies for now ===
+# Other phones are recorded by the webhook but the response pipeline stops.
 TEST_PHONE = "918287367640"
 
 
@@ -99,10 +99,10 @@ async def decide(phone: str, combined_text: str, history: list[dict] | None = No
     lines = [l.strip() for l in text.splitlines() if l.strip()]
 
     # ------------------------------------------------------------------
-    # ONLY the test phone uses this engine. Everyone else = LLM (unchanged).
+    # ONLY the test phone uses this engine. Everyone else is receive-only.
     # ------------------------------------------------------------------
     if phone != TEST_PHONE:
-        return RouteDecision(use_llm=True, reply=None, reason="phone-not-test-scope")
+        return RouteDecision(use_llm=False, reply=None, reason="phone-not-test-scope")
 
     # ------------------------------------------------------------------
     # 0. Empty / whitespace -> ignore silently (chat_buffer filters upstream,
