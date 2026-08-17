@@ -36,7 +36,7 @@ WELCOME = (
 LOCATION_REPLY = (
     "📍 *Neeraj Enterprises Fashion*\n"
     "D899, Chawla Colony, Ballabhgarh, Faridabad, Haryana 121004\n"
-    "https://maps.app.goo.gl/MeMWnNrG3DJHNRZ3A\n\n"
+    "https://www.google.com/maps/search/?api=1&query=Neeraj+Enterprises+Fashion%2C+D899%2C+Chawla+Colony%2C+Ballabhgarh%2C+Faridabad%2C+Haryana+121004\n\n"
     "Owner: Neeraj Aggarwal\n"
     "Open: 10 AM – 9 PM\n\n"
     "Kuch aur poochna ho toh *Type 6* dabayein 🙏"
