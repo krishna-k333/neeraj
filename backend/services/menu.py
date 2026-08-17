@@ -8,12 +8,8 @@ ready to send without any LLM intervention.
 # ---------------------------------------------------------------------------
 # Staff contacts (verbatim from doc)
 # ---------------------------------------------------------------------------
-STAFF = {
-    "manoj":   {"name": "Manoj",   "phone": "919911569029"},
-    "vijay":   {"name": "Vijay",   "phone": "918860321521"},
-    "anil":    {"name": "Anil",    "phone": "919711158358"},
-    "durgesh": {"name": "Durgesh", "phone": "918700840135"},
-}
+SHOP_PHONE = "919312971238"
+SHOP_NAME = "Neeraj Enterprises Fashion"
 
 
 def _wa_link(phone_e164: str, msg: str = "") -> str:
@@ -72,11 +68,9 @@ def price_reply(digit: str) -> str | None:
     staff_keys = PRICE_STAFF_MAP.get(digit)
     if not staff_keys:
         return None
-    keys = staff_keys if isinstance(staff_keys, list) else [staff_keys]
     lines = ["💬 *Price ke liye inse baat karo:*\n"]
-    for k in keys:
-        s = STAFF[k]
-        lines.append(f"👉 *{s['name']}* — wa.me/{s['phone']}\n")
+    # Always route customers to the shop number, regardless of category.
+    lines.append(f"👉 *{SHOP_NAME}* — wa.me/{SHOP_PHONE}\n")
     lines.append("\nAur kuch? *Type 6* 🙏")
     return "".join(lines)
 
