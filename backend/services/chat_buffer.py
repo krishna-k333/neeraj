@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 # How long to wait for more messages before answering (seconds).
 DEBOUNCE_SECONDS = 4.0
 # How many past messages of context to load into the LLM.
-HISTORY_MESSAGES = 6
+HISTORY_MESSAGES = 8
 
 _FALLBACK_REPLY = "नमस्ते! हम आपकी बात सुन रहे हैं। कृपया थोड़ा इंतजार करें। 🙏"
 
@@ -81,11 +81,16 @@ async def _flush(phone: str) -> None:
             return
 
         combined = "\n".join(texts)
+        is_first_message = await reply_router.is_first_customer_message(phone, len(texts))
 
         # Try the rule engine first — it returns a static reply for menu
         # navigation, greetings, ok/thanks/bye, contact shares. If it says
         # "use LLM", we fall through to Sarvam as before.
-        decision = await reply_router.decide(phone, combined)
+        decision = await reply_router.decide(
+            phone,
+            combined,
+            is_first_message=is_first_message,
+        )
 
         if not decision.use_llm:
             # decision.reply is None only when the engine decided to ignore

@@ -26,12 +26,11 @@ def _wa_link(phone_e164: str, msg: str = "") -> str:
 # Welcome (top-level menu)
 # ---------------------------------------------------------------------------
 WELCOME = (
-    "🙏 Welcome to *Neeraj Enterprises*!\n"
-    "Saree | Suit | Lehenga | Dresses — sab kuch ek hi jagah.\n\n"
+    "Namaste NE Fashion mein aapka swagat hai 🙏\n\n"
     "*Type 1* for 📍 Location\n"
-    "*Type 2* for 💰 Price\n"
-    "*Type 3* for 📸 Catalogue\n"
-    "*Type 6* for any other help"
+    "*Type 2* for 🛍️ Products & Price\n"
+    "*Type 3* for 📸 Collection\n"
+    "*Type 6* for any other query"
 )
 
 
@@ -39,20 +38,23 @@ WELCOME = (
 # Sub-menus
 # ---------------------------------------------------------------------------
 LOCATION_REPLY = (
-    "📍 *Humari shop ki location:*\n"
+    "📍 *Neeraj Enterprises Fashion*\n"
+    "D899, Chawla Colony, Ballabhgarh, Faridabad, Haryana 121004\n"
     "https://maps.app.goo.gl/MeMWnNrG3DJHNRZ3A\n\n"
+    "Owner: Neeraj Aggarwal\n"
+    "Open: 10 AM – 9 PM\n\n"
     "Kuch aur poochna ho toh *Type 6* dabayein 🙏"
 )
 
 
 PRICE_MENU = (
-    "💰 *Price category batao:*\n\n"
+    "🛍️ *Products & Price category batao:*\n\n"
     "*Type 1* for Astar / Fall / Peticot\n"
     "*Type 2* for Saree\n"
     "*Type 3* for Lehenga\n"
     "*Type 4* for Suit (Unstitch + Ready-made)\n"
     "*Type 5* for Dresses\n\n"
-    "Baaki kuch? *Type 6*"
+    "Baaki kuch poochna ho toh *Type 6*"
 )
 
 
