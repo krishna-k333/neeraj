@@ -9,6 +9,8 @@ import { MiniChart } from "@/components/MiniChart";
 import { api } from "@/lib/api";
 import { format } from "date-fns";
 
+type Trend = { value: string; up: boolean } | null;
+
 type DashboardStats = {
   messages_sent: number;
   messages_received: number;
@@ -20,6 +22,11 @@ type DashboardStats = {
   whatsapp_status: { state?: string };
   recent_activity: Array<{ id: number; direction: string; phone: string; content: string; msg_type: string; created_at: string }>;
   seven_day_messages: number[];
+  trends?: {
+    messages_received?: Trend;
+    messages_sent?: Trend;
+    thankyou_sent?: Trend;
+  };
 };
 
 export function DashboardPage() {
@@ -71,9 +78,9 @@ export function DashboardPage() {
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 lg:gap-4">
-        <StatCard title="Msgs Received" value={s.messages_received} icon={MessageCircle} color="#3b82f6" trend={{ value: "+14%", up: true }} />
-        <StatCard title="Msgs Sent" value={s.messages_sent} icon={Radio} color="#8b5cf6" sub="outbound" />
-        <StatCard title="Thank-Yous" value={s.thankyou_sent} icon={Heart} color="#f43f5e" trend={{ value: "+3", up: true }} />
+        <StatCard title="Msgs Received" value={s.messages_received} icon={MessageCircle} color="#3b82f6" trend={s.trends?.messages_received ?? undefined} />
+        <StatCard title="Msgs Sent" value={s.messages_sent} icon={Radio} color="#8b5cf6" sub="outbound" trend={s.trends?.messages_sent ?? undefined} />
+        <StatCard title="Thank-Yous" value={s.thankyou_sent} icon={Heart} color="#f43f5e" trend={s.trends?.thankyou_sent ?? undefined} />
         <StatCard title="Catalog Items" value={s.total_products_in_catalog} icon={Package} color="#f59e0b" />
         <StatCard title="Posts Today" value={s.posts_scheduled_today} icon={Share2} color="#0d9488" />
         <StatCard title="Videos Made" value={s.videos_created_today} icon={Video} color="#06b6d4" />

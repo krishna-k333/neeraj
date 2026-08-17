@@ -35,6 +35,8 @@ class Settings(BaseSettings):
 
     N8N_THANKYOU_WEBHOOK: str = "98d5228d-32e5-4064-84fd-af63ad59cee2"
 
+    DEBUG: bool = False
+
     class Config:
         env_file = ".env"
 

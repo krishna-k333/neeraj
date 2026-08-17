@@ -7,3 +7,7 @@ frontend/node_modules/
 frontend/.git.local-backup/
 **/__pycache__/
 *.pyc
+
+# Local assistant metadata and raw planning notes
+.commandcode/
+message insp.txt

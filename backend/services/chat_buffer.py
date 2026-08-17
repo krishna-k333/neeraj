@@ -25,7 +25,7 @@ from sqlalchemy import select
 
 from database import SessionLocal
 from models import Message
-from services import evolution, llm
+from services import evolution, llm, router as reply_router
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +70,23 @@ async def _flush(phone: str) -> None:
             return
 
         combined = "\n".join(texts)
+
+        # Try the rule engine first — it returns a static reply for menu
+        # navigation, greetings, ok/thanks/bye, contact shares. If it says
+        # "use LLM", we fall through to Sarvam as before.
+        decision = await reply_router.decide(phone, combined)
+
+        if not decision.use_llm:
+            # decision.reply is None only when the engine decided to ignore
+            # (e.g. whitespace). In that case, don't send or record anything.
+            if decision.reply is None:
+                logger.info(f"router skip for {phone}: {decision.reason}")
+                return
+            logger.info(f"router static for {phone}: {decision.reason}")
+            await _send_and_record(phone, decision.reply)
+            return
+
+        logger.info(f"router -> LLM for {phone}: {decision.reason}")
         history = await _load_history(phone)
 
         try:

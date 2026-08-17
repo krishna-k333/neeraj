@@ -13,7 +13,10 @@ export const api = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-    }).then((r) => r.json()),
+    }).then(async (r) => {
+      if (!r.ok) throw new Error(`API error ${r.status}`);
+      return r.json();
+    }),
   patch: (path: string, body: unknown) =>
     fetch(`${API_BASE}${path}`, {
       method: "PATCH",

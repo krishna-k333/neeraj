@@ -4,10 +4,11 @@ WhatsApp chatbot inbound handler + Evolution API webhook receiver.
 import asyncio
 import logging
 
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Request, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
+from config import settings
 from database import get_db, SessionLocal
 from models import Message
 from services import evolution, chat_buffer, vision
@@ -53,13 +54,21 @@ async def evolution_webhook(request: Request, db: AsyncSession = Depends(get_db)
     burst with a single, context-aware reply. Returns immediately so Evolution
     gets a fast 200 (the reply is generated in the background).
     """
-    payload = await request.json()
+    try:
+        payload = await request.json()
+    except Exception as e:
+        logger.warning(f"webhook: non-JSON body: {e}")
+        return {"ok": False, "reason": "invalid-json"}
 
-    if payload.get("event", "") != "messages.upsert":
+    event = payload.get("event", "")
+    if event != "messages.upsert":
+        logger.info(f"webhook: ignoring event={event!r}")
         return {"ok": True}
 
     data = payload.get("data", {})
-    messages = data.get("messages", [])
+    messages = data.get("messages", []) or []
+
+    logger.info(f"webhook: messages.upsert with {len(messages)} msg(s)")
 
     for msg in messages:
         if msg.get("key", {}).get("fromMe"):
@@ -67,6 +76,7 @@ async def evolution_webhook(request: Request, db: AsyncSession = Depends(get_db)
 
         phone = msg.get("key", {}).get("remoteJid", "").replace("@s.whatsapp.net", "")
         if not phone:
+            logger.warning(f"webhook: msg without remoteJid, skipping: {msg.get('key')}")
             continue
 
         msg_body = msg.get("message", {})
@@ -85,7 +95,10 @@ async def evolution_webhook(request: Request, db: AsyncSession = Depends(get_db)
                msg_body.get("extendedTextMessage", {}).get("text", "")
 
         if not text:
+            logger.info(f"webhook: msg from {phone} has no text, skipping")
             continue
+
+        logger.info(f"webhook: {phone} -> {text!r}")
 
         # Persist the inbound message (record + history source of truth).
         db.add(Message(phone=phone, direction="inbound", content=text, status="replied"))
@@ -101,6 +114,30 @@ async def evolution_webhook(request: Request, db: AsyncSession = Depends(get_db)
 async def whatsapp_status():
     status = await evolution.get_instance_status()
     return status
+
+
+@router.post("/webhook/simulate")
+async def simulate_webhook(request: Request, db: AsyncSession = Depends(get_db)):
+    """
+    Dev-only: manually push a message through the same path Evolution uses.
+    Lets you test the chatbot end-to-end without depending on Evolution's
+    webhook URL being wired up.
+
+    Body: {"phone": "918287367640", "text": "hello"}
+    """
+    if not settings.DEBUG:
+        raise HTTPException(status_code=404, detail="Not available")
+
+    body = await request.json()
+    phone = body.get("phone", "").replace("@s.whatsapp.net", "")
+    text = body.get("text", "")
+    if not phone or not text:
+        raise HTTPException(status_code=400, detail="phone and text required")
+
+    db.add(Message(phone=phone, direction="inbound", content=text, status="replied"))
+    await db.commit()
+    await chat_buffer.enqueue(phone, text)
+    return {"ok": True, "phone": phone, "text": text}
 
 
 @router.get("/conversations")

@@ -74,9 +74,41 @@ async def get_media_base64(message_id: str) -> tuple[str, str]:
 
 
 async def get_instance_status() -> dict:
-    async with httpx.AsyncClient(timeout=10) as client:
+    """
+    Return a normalized status dict: {"state": "open"|"close"|"connecting"|"unknown"}.
+
+    Evolution API has changed the response shape across versions:
+      - v1: {"instance": {"state": "open"}}
+      - v2: {"state": "open", ...}
+    Plus some deployments wrap it under "instances" or omit the field entirely.
+    The frontend only checks `state`, so we flatten and normalize here.
+    """
+    async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
         r = await client.get(
             f"{BASE}/instance/connectionState/{INSTANCE}",
-            headers=HEADERS
+            headers=HEADERS,
         )
-        return r.json()
+        r.raise_for_status()
+        raw = r.json()
+
+    # Try every known shape
+    state = None
+    if isinstance(raw, dict):
+        if isinstance(raw.get("instance"), dict) and "state" in raw["instance"]:
+            state = raw["instance"].get("state")
+        elif "state" in raw:
+            state = raw.get("state")
+
+    # Map Evolution's state names to a small fixed set the UI matches on.
+    state_normalized = {
+        "open": "open",
+        "connected": "open",
+        "close": "close",
+        "closed": "close",
+        "disconnected": "close",
+        "connecting": "connecting",
+        "qr": "connecting",
+        "pairing": "connecting",
+    }.get((state or "").lower() if isinstance(state, str) else "", "unknown")
+
+    return {"state": state_normalized, "raw": raw}
