@@ -21,7 +21,7 @@ Follow the NEERAJ ENTERPRISES Fashion SUIT & SAREES channel on WhatsApp:
 https://whatsapp.com/channel/0029VbB3ji3ICVfd7aCbhX1o
 
 📍 कृपया अपना अनुभव साझा करें on Google Maps:
-https://bit.ly/4tYJGR0"""
+https://www.google.com/search?q=Neeraj+Enterprises+Fashion+Reviews"""
 
 
 async def _send_thankyou(phone: str, amount: str):

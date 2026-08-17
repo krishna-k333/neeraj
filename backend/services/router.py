@@ -55,6 +55,22 @@ async def is_first_customer_message(phone: str, current_batch_size: int = 1) -> 
         return inbound_count <= max(current_batch_size, 1)
 
 
+async def _price_menu_is_active(phone: str) -> bool:
+    """Return True when the last bot menu asks the customer for a category."""
+    async with SessionLocal() as db:
+        result = await db.execute(
+            select(Message.content)
+            .where(
+                Message.phone == phone,
+                Message.direction == "outbound",
+            )
+            .order_by(Message.created_at.desc(), Message.id.desc())
+            .limit(1)
+        )
+        last_reply = result.scalar_one_or_none()
+    return bool(last_reply and last_reply == menu.PRICE_MENU)
+
+
 def _norm(text: str) -> str:
     return (text or "").strip()
 
@@ -99,6 +115,13 @@ async def decide(
     m = _DIGIT_RE.match(text)
     if m and "\n" not in text:
         digit = m.group(1)
+        # Once the customer selected Products & Price, 1–5 belong to the
+        # category menu. This takes precedence over the top-level menu so a
+        # follow-up "1" cannot incorrectly return the store location.
+        if digit in ("1", "2", "3", "4", "5") and await _price_menu_is_active(phone):
+            r = menu.price_reply(digit)
+            if r:
+                return RouteDecision(use_llm=False, reply=r, reason=f"price-submenu:{digit}")
         # 1/2/3 are inside the menu
         if digit == "1":
             return RouteDecision(use_llm=False, reply=menu.LOCATION_REPLY, reason="menu:1-location")
