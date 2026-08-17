@@ -74,6 +74,14 @@ async def _read_payload(request: Request) -> dict:
             payload = await request.json()
     except Exception as e:
         raise HTTPException(status_code=400, detail="Send a JSON or form payload") from e
+    # n8n exports webhook items as a one-item array and may wrap fields in
+    # `body`; accept that representation as well as a direct request body.
+    if isinstance(payload, list):
+        if len(payload) != 1 or not isinstance(payload[0], dict):
+            raise HTTPException(status_code=400, detail="Payload must contain one object")
+        payload = payload[0]
+    if isinstance(payload, dict) and isinstance(payload.get("body"), dict):
+        payload = payload["body"]
     if not isinstance(payload, dict):
         raise HTTPException(status_code=400, detail="Payload must be an object")
     return payload
