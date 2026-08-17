@@ -20,6 +20,7 @@ two workers could buffer the same burst separately.
 import asyncio
 import logging
 from collections import defaultdict
+import re
 
 from sqlalchemy import select
 
@@ -39,6 +40,16 @@ _FALLBACK_REPLY = "नमस्ते! हम आपकी बात सुन �
 _buffers: dict[str, list[str]] = {}
 _timers: dict[str, asyncio.Task] = {}
 _locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
+
+
+def _evolution_number(phone: str) -> str:
+    """Return a WhatsApp number with one India country prefix only."""
+    digits = re.sub(r"\D", "", phone or "")
+    if digits.startswith("91") and len(digits) == 12:
+        return digits
+    if len(digits) == 10:
+        return f"91{digits}"
+    return digits
 
 
 async def enqueue(phone: str, text: str) -> None:
@@ -136,7 +147,8 @@ async def _load_history(phone: str) -> list[dict]:
 
 async def _send_and_record(phone: str, reply: str) -> None:
     try:
-        await evolution.send_text(f"91{phone}", reply, delay=False)
+        destination = _evolution_number(phone)
+        await evolution.send_text(destination, reply, delay=False)
     except Exception as e:
         logger.error(f"Evolution send error for {phone}: {e}")
         return

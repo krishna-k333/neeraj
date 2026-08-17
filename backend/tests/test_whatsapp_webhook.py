@@ -1,6 +1,7 @@
 import unittest
 
 from routers.whatsapp import _extract_upsert_messages, _message_phone
+from services.chat_buffer import _evolution_number
 
 
 class EvolutionWebhookPayloadTests(unittest.TestCase):
@@ -38,6 +39,10 @@ class EvolutionWebhookPayloadTests(unittest.TestCase):
         }
 
         self.assertEqual(_message_phone(message), "919876543210")
+
+    def test_preserves_full_indian_number_for_outbound_reply(self):
+        self.assertEqual(_evolution_number("918287367640"), "918287367640")
+        self.assertEqual(_evolution_number("8287367640"), "918287367640")
 
 
 if __name__ == "__main__":
