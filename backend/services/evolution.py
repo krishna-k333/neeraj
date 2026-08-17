@@ -13,7 +13,7 @@ HEADERS = {"apikey": settings.EVOLUTION_API_KEY, "Content-Type": "application/js
 
 
 async def _post(path: str, body: dict) -> dict:
-    async with httpx.AsyncClient(timeout=30) as client:
+    async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
         r = await client.post(f"{BASE}{path}", json=body, headers=HEADERS)
         r.raise_for_status()
         return r.json()
@@ -62,7 +62,7 @@ async def get_media_base64(message_id: str) -> tuple[str, str]:
     Fetch the raw media of an inbound message as base64.
     Returns (base64_data, mimetype). Used to hand customer photos to Gemini.
     """
-    async with httpx.AsyncClient(timeout=30) as client:
+    async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
         r = await client.post(
             f"{BASE}/chat/getBase64FromMediaMessage/{INSTANCE}",
             json={"message": {"key": {"id": message_id}}, "convertToMp4": False},
