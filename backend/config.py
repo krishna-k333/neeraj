@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:3000"
 
     N8N_THANKYOU_WEBHOOK: str = "98d5228d-32e5-4064-84fd-af63ad59cee2"
+    # Optional shared secret for the public thank-you-page webhook.
+    # When set in the runtime environment, callers must send X-Webhook-Secret.
+    THANKYOU_WEBHOOK_SECRET: str = ""
 
     DEBUG: bool = False
 
