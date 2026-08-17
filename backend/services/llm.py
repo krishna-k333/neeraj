@@ -122,10 +122,17 @@ async def chat(user_message: str, history: list[dict] = None) -> str:
             json={
                 "model": settings.AI_MODEL,
                 "messages": messages,
-                "max_tokens": 200,
+                # Sarvam reasoning is enabled by default and can consume a
+                # 200-token budget before producing visible text. This bot
+                # needs a short direct reply, not a reasoning trace.
+                "reasoning_effort": None,
+                "max_tokens": 300,
                 "temperature": 0.5,
             }
         )
         r.raise_for_status()
         data = r.json()
-        return data["choices"][0]["message"]["content"]
+        content = data["choices"][0]["message"].get("content")
+        if not content:
+            raise RuntimeError("Sarvam returned no visible message content")
+        return content.strip()
