@@ -35,8 +35,6 @@ DEBOUNCE_SECONDS = 4.0
 # How many past messages of context to load into the LLM.
 HISTORY_MESSAGES = 8
 
-_FALLBACK_REPLY = "नमस्ते! हम आपकी बात सुन रहे हैं। कृपया थोड़ा इंतजार करें। 🙏"
-
 _buffers: dict[str, list[str]] = {}
 _timers: dict[str, asyncio.Task] = {}
 _locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
@@ -108,8 +106,15 @@ async def _flush(phone: str) -> None:
         try:
             reply = await llm.chat(combined, history)
         except Exception as e:
-            logger.error(f"AI chat error for {phone}: {e}")
-            reply = _FALLBACK_REPLY
+            # Never send an invented generic reply. Retry the real model once;
+            # if it is unavailable, wait for the next customer message rather
+            # than contradicting the configured menu/AI rules.
+            logger.warning(f"AI chat failed for {phone}; retrying once: {e}")
+            try:
+                reply = await llm.chat(combined, history)
+            except Exception as retry_error:
+                logger.error(f"AI chat failed after retry for {phone}: {retry_error}")
+                return
 
         await _send_and_record(phone, reply)
 
