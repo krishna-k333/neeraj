@@ -9,7 +9,9 @@ class Settings(BaseSettings):
     WA_ACCOUNT_START_DATE: date = date(2026, 7, 3)
 
     AI_API_KEY: str = ""
-    AI_MODEL: str = ""
+    # Sarvam's current chat endpoint accepts sarvam-105b; the older 30b
+    # identifier now returns HTTP 400 and leaves customers without an AI reply.
+    AI_MODEL: str = "sarvam-105b"
 
     # Gemini — used only to "see" inbound customer photos (product images).
     # Sarvam stays the text brain; Gemini's description feeds into it.
