@@ -3,6 +3,7 @@ import unittest
 
 from routers.whatsapp import _extract_upsert_messages, _message_phone
 from services.chat_buffer import HISTORY_MESSAGES, _evolution_number
+from services.menu import price_reply
 from services.router import TEST_PHONE, decide
 
 
@@ -66,6 +67,11 @@ class EvolutionWebhookPayloadTests(unittest.TestCase):
             decision = asyncio.run(decide(TEST_PHONE, digit))
             self.assertFalse(decision.use_llm, digit)
             self.assertIsNotNone(decision.reply, digit)
+
+    def test_price_categories_use_staff_contacts(self):
+        self.assertIn("919711158358", price_reply("1"))
+        self.assertIn("918700840135", price_reply("2"))
+        self.assertNotIn("918178643108", price_reply("2"))
 
     def test_everything_else_uses_ai(self):
         for text in ("6", "hello", "thanks", "saree under 1000"):
